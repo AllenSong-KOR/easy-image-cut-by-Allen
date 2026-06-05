@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Easy Image Cut by Allen</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap');
+  :root {
+    --bg:#0e0e0f; --surface:#18181b; --surface2:#222226;
+    --border:#2e2e33; --accent:#e8ff47; --text:#f0f0f0; --muted:#888;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+  header{display:flex;align-items:center;gap:16px;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+  .logo{font-size:20px;font-weight:800;color:var(--accent);display:flex;align-items:baseline;gap:7px;}
+  .logo .n{color:var(--text);}
+  .logo .by{font-size:11px;font-weight:400;font-family:'DM Mono',monospace;color:var(--muted);}
+  .hsub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+  .hact{display:flex;gap:8px;margin-left:auto;align-items:center;}
+  .btn{font-family:'DM Mono',monospace;font-size:12px;padding:7px 14px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;border-radius:4px;transition:all .15s;}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn.p{background:var(--accent);color:#000;border-color:var(--accent);font-weight:500;}
+  .btn.p:hover{background:#d4eb3a;}
+  .btn.o{background:#ff6b35;color:#000;border-color:#ff6b35;font-weight:500;}
+  .btn.o:hover{background:#e85e2b;}
+  .btn:disabled{opacity:.3;cursor:default;pointer-events:none;}
+  .workspace{display:flex;flex:1;overflow:hidden;}
+  .sidebar{width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+  .panel{border-bottom:1px solid var(--border);padding:14px 16px;}
+  .ptitle{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;font-family:'DM Mono',monospace;}
+  .frow{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .flabel{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);width:28px;flex-shrink:0;}
+  .finput{font-family:'DM Mono',monospace;font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:3px;width:100%;}
+  .finput:focus{outline:none;border-color:var(--accent);}
+  .funit{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);width:20px;flex-shrink:0;}
+  .lockrow{display:flex;align-items:center;gap:8px;margin:4px 0;padding:6px 8px;border-radius:4px;cursor:pointer;transition:background .15s;}
+  .lockrow:hover{background:var(--surface2);}
+  .toggle{width:28px;height:16px;background:var(--border);border-radius:8px;position:relative;transition:background .2s;flex-shrink:0;}
+  .toggle::after{content:'';position:absolute;width:12px;height:12px;background:var(--muted);border-radius:50%;top:2px;left:2px;transition:all .2s;}
+  .toggle.on{background:var(--accent);}
+  .toggle.on::after{left:14px;background:#000;}
+  .tlabel{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+  .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .pbtn{font-family:'DM Mono',monospace;font-size:10px;padding:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;border-radius:3px;text-align:center;transition:all .15s;line-height:1.4;}
+  .pbtn:hover{border-color:var(--accent);color:var(--accent);}
+  .pbtn small{font-size:9px;opacity:.6;display:block;}
+  .irow{display:flex;justify-content:space-between;margin-bottom:6px;}
+  .ik{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
+  .iv{font-family:'DM Mono',monospace;font-size:10px;color:var(--text);}
+  .hint{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);line-height:1.7;margin-bottom:10px;}
+  .zrow{display:flex;align-items:center;gap:8px;}
+  .zrow input[type=range]{flex:1;accent-color:var(--accent);}
+  .zval{font-family:'DM Mono',monospace;font-size:11px;color:var(--text);width:40px;text-align:right;}
+
+  /* CANVAS AREA */
+  #ca{flex:1;position:relative;overflow:hidden;background:var(--bg);
+    background-image:linear-gradient(#18181b 1px,transparent 1px),linear-gradient(90deg,#18181b 1px,transparent 1px);
+    background-size:40px 40px;}
+  #ca.panning,#ca.panning *{cursor:grabbing!important;}
+
+  /* Drop zone */
+  #dz{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    display:flex;flex-direction:column;align-items:center;gap:12px;
+    padding:60px;border:2px dashed var(--border);border-radius:8px;
+    cursor:pointer;text-align:center;transition:border-color .2s;z-index:10;}
+  #dz:hover,#dz.over{border-color:var(--accent);}
+  .dico{font-size:48px;filter:grayscale(1);}
+  .dtitle{font-size:18px;font-weight:700;}
+  .dsub{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;}
+
+  /* Stage: position:absolute, moved by transform */
+  #stage{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;}
+
+  /* Crop overlay: same size as canvas, on top of it */
+  #co{position:absolute;top:0;left:0;pointer-events:none;}
+  .dim{position:absolute;background:rgba(0,0,0,.55);}
+
+  #cb{position:absolute;border:3px solid var(--accent);cursor:move;pointer-events:all;box-shadow:0 0 0 1px rgba(0,0,0,0.5);}
+  .cc{position:absolute;width:14px;height:14px;background:var(--accent);pointer-events:all;z-index:10;box-shadow:0 0 0 1px rgba(0,0,0,0.4);}
+  .cc.nw{top:-7px;left:-7px;cursor:nw-resize;}
+  .cc.ne{top:-7px;right:-7px;cursor:ne-resize;}
+  .cc.sw{bottom:-7px;left:-7px;cursor:sw-resize;}
+  .cc.se{bottom:-7px;right:-7px;cursor:se-resize;}
+  .ce{position:absolute;background:transparent;pointer-events:all;}
+  .ce.n{top:-4px;left:10px;right:10px;height:8px;cursor:n-resize;}
+  .ce.s{bottom:-4px;left:10px;right:10px;height:8px;cursor:s-resize;}
+  .ce.w{left:-4px;top:10px;bottom:10px;width:8px;cursor:w-resize;}
+  .ce.e{right:-4px;top:10px;bottom:10px;width:8px;cursor:e-resize;}
+  .gl{position:absolute;background:rgba(232,255,71,.2);}
+  .gl.v1{left:33.33%;top:0;bottom:0;width:1px;}
+  .gl.v2{left:66.66%;top:0;bottom:0;width:1px;}
+  .gl.h1{top:33.33%;left:0;right:0;height:1px;}
+  .gl.h2{top:66.66%;left:0;right:0;height:1px;}
+  #clabel{position:absolute;bottom:-26px;left:0;font-family:'DM Mono',monospace;font-size:11px;
+    background:var(--accent);color:#000;padding:2px 7px;border-radius:3px;white-space:nowrap;pointer-events:none;}
+
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--accent);color:#000;font-family:'DM Mono',monospace;font-size:12px;
+    padding:8px 16px;border-radius:4px;opacity:0;transition:all .3s;pointer-events:none;z-index:999;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  input[type=file]{display:none;}
+  /* ── MOBILE ── */
+  @media (max-width: 768px) {
+    header { padding: 8px 12px; gap: 8px; }
+    .logo { font-size: 16px; }
+    .hsub { display: none; }
+    .btn { padding: 6px 10px; font-size: 11px; }
+    .hact { gap: 5px; }
+
+    .workspace { flex-direction: column-reverse; }
+
+    .sidebar {
+      width: 100%;
+      height: auto;
+      max-height: 40vh;
+      border-right: none;
+      border-top: 1px solid var(--border);
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: hidden;
+      flex-shrink: 0;
+    }
+    .panel {
+      border-bottom: none;
+      border-right: 1px solid var(--border);
+      min-width: 200px;
+      flex-shrink: 0;
+    }
+    #ca { flex: 1; min-height: 0; }
+
+    /* 터치 핸들 더 크게 */
+    .cc { width: 22px !important; height: 22px !important; }
+    .cc.nw { top: -11px !important; left: -11px !important; }
+    .cc.ne { top: -11px !important; right: -11px !important; }
+    .cc.sw { bottom: -11px !important; left: -11px !important; }
+    .cc.se { bottom: -11px !important; right: -11px !important; }
+    .ce.n { height: 20px !important; top: -10px !important; }
+    .ce.s { height: 20px !important; bottom: -10px !important; }
+    .ce.w { width: 20px !important; left: -10px !important; }
+    .ce.e { width: 20px !important; right: -10px !important; }
+  }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Image<span class="n">Cut</span><span class="by">by allen</span></div>
+  <span class="hsub">자유 이미지 크롭 · 리사이즈</span>
+  <div class="hact">
+    <button class="btn" onclick="document.getElementById('fi').click()">📂 열기</button>
+    <button class="btn" id="breset" disabled onclick="resetCrop()">초기화</button>
+    <button class="btn p" id="bcrop" disabled onclick="doCrop()">✂ 크롭 저장</button>
+    <button class="btn o" id="bresize" disabled onclick="doResize()">↔ 리사이즈 저장</button>
+  </div>
+</header>
+
+<div class="workspace">
+<div class="sidebar">
+  <div class="panel">
+    <div class="ptitle">크롭 영역 (px)</div>
+    <div class="frow"><span class="flabel">X</span><input class="finput" id="cx" type="number" min="0" value="0" oninput="fromInput()"><span class="funit">px</span></div>
+    <div class="frow"><span class="flabel">Y</span><input class="finput" id="cy" type="number" min="0" value="0" oninput="fromInput()"><span class="funit">px</span></div>
+    <div class="frow"><span class="flabel">W</span><input class="finput" id="cw" type="number" min="1" value="100" oninput="fromInput('w')"><span class="funit">px</span></div>
+    <div class="frow"><span class="flabel">H</span><input class="finput" id="ch" type="number" min="1" value="100" oninput="fromInput('h')"><span class="funit">px</span></div>
+    <div class="lockrow" onclick="toggleCropLock()">
+      <div class="toggle" id="clt"></div><span class="tlabel" id="cll">비율 고정 OFF</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ptitle">출력 크기 (리사이즈)</div>
+    <div class="frow"><span class="flabel">W</span><input class="finput" id="ow" type="number" min="1" placeholder="원본" oninput="fromOutW()"><span class="funit">px</span></div>
+    <div class="frow"><span class="flabel">H</span><input class="finput" id="oh" type="number" min="1" placeholder="원본" oninput="fromOutH()"><span class="funit">px</span></div>
+    <div class="lockrow" onclick="toggleOutLock()">
+      <div class="toggle" id="olt"></div><span class="tlabel" id="oll">비율 고정 OFF</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ptitle">크롭 프리셋</div>
+    <div class="pgrid">
+      <button class="pbtn" onclick="preset(1,1)">정사각형<small>1:1</small></button>
+      <button class="pbtn" onclick="preset(16,9)">와이드<small>16:9</small></button>
+      <button class="pbtn" onclick="preset(4,3)">표준<small>4:3</small></button>
+      <button class="pbtn" onclick="preset(3,2)">사진<small>3:2</small></button>
+      <button class="pbtn" onclick="preset(9,16)">세로<small>9:16</small></button>
+      <button class="pbtn" onclick="preset(2,3)">포트레잇<small>2:3</small></button>
+      <button class="pbtn" onclick="selectAll()">전체 선택<small>full</small></button>
+      <button class="pbtn" onclick="preset(21,9)">시네마<small>21:9</small></button>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ptitle">보기</div>
+    <div class="hint">🖱 스크롤 → 확대/축소<br>🖐 빈 공간 드래그 → 화면 이동</div>
+    <div class="zrow">
+      <span class="flabel" style="width:auto;font-size:10px">배율</span>
+      <input type="range" id="zslider" min="5" max="500" value="100" oninput="sliderZoom(this.value)">
+      <span class="zval" id="zval">100%</span>
+    </div>
+    <button class="btn" style="width:100%;margin-top:8px;font-size:11px" onclick="fit()">화면에 맞추기</button>
+  </div>
+  <div class="panel">
+    <div class="ptitle">이미지 정보</div>
+    <div class="irow"><span class="ik">원본 W</span><span class="iv" id="iw">—</span></div>
+    <div class="irow"><span class="ik">원본 H</span><span class="iv" id="ih">—</span></div>
+    <div class="irow"><span class="ik">크롭 W</span><span class="iv" id="icw">—</span></div>
+    <div class="irow"><span class="ik">크롭 H</span><span class="iv" id="ich">—</span></div>
+    <div class="irow"><span class="ik">파일명</span><span class="iv" id="iname" style="font-size:9px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span></div>
+  </div>
+</div>
+
+<div id="ca">
+  <div id="dz">
+    <div class="dico">🖼</div>
+    <div class="dtitle">이미지를 드롭하거나 클릭하세요</div>
+    <div class="dsub">PNG · JPG · WEBP · GIF · BMP 지원</div>
+    <button class="btn p" onclick="event.stopPropagation();document.getElementById('fi').click()">파일 선택</button>
+  </div>
+
+  <div id="stage" style="display:none">
+    <canvas id="mc"></canvas>
+    <div id="co">
+      <div class="dim" id="dt"></div>
+      <div class="dim" id="db"></div>
+      <div class="dim" id="dl"></div>
+      <div class="dim" id="dr"></div>
+      <div id="cb">
+        <div class="gl v1"></div><div class="gl v2"></div>
+        <div class="gl h1"></div><div class="gl h2"></div>
+        <div class="cc nw" data-d="nw"></div>
+        <div class="cc ne" data-d="ne"></div>
+        <div class="cc sw" data-d="sw"></div>
+        <div class="cc se" data-d="se"></div>
+        <div class="ce n" data-d="n"></div>
+        <div class="ce s" data-d="s"></div>
+        <div class="ce w" data-d="w"></div>
+        <div class="ce e" data-d="e"></div>
+        <div id="clabel">0 x 0</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div id="toast"></div>
+<input type="file" id="fi" accept="image/*" onchange="loadFile(this)">
+
+<script>
+// ── State ──
+let img=null, imgW=0, imgH=0, fname='image';
+let scale=1, panX=0, panY=0;
+let crop={x:0,y:0,w:100,h:100};
+let cropLocked=false, outLocked=false, cropRatio=1, outRatio=1;
+let dragMode=null, dragStart={};
+
+// ── Elements ──
+const ca=document.getElementById('ca');
+const dz=document.getElementById('dz');
+const stage=document.getElementById('stage');
+const mc=document.getElementById('mc');
+const ctx=mc.getContext('2d');
+const co=document.getElementById('co');
+const cb=document.getElementById('cb');
+
+// ── Drop ──
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0])loadImg(e.dataTransfer.files[0]);});
+dz.addEventListener('click',()=>document.getElementById('fi').click());
+ca.addEventListener('dragover',e=>e.preventDefault());
+ca.addEventListener('drop',e=>{e.preventDefault();if(e.dataTransfer.files[0])loadImg(e.dataTransfer.files[0]);});
+
+function loadFile(inp){if(inp.files[0])loadImg(inp.files[0]);}
+
+function loadImg(file){
+  fname=file.name.replace(/\.[^.]+$/,'');
+  const image=new Image();
+  image.onload=()=>{
+    img=image; imgW=image.naturalWidth; imgH=image.naturalHeight;
+    document.getElementById('iw').textContent=imgW+' px';
+    document.getElementById('ih').textContent=imgH+' px';
+    document.getElementById('iname').textContent=file.name;
+    // 이미지를 원본 크기로 한 번만 그림
+    mc.width=imgW; mc.height=imgH;
+    ctx.drawImage(img,0,0,imgW,imgH);
+    co.style.width=imgW+'px'; co.style.height=imgH+'px';
+    dz.style.display='none';
+    stage.style.display='block';
+    fit();
+    selectAll();
+    ['breset','bcrop','bresize'].forEach(id=>document.getElementById(id).disabled=false);
+  };
+  image.src=URL.createObjectURL(file);
+}
+
+// ── Transform: 줌/팬은 CSS transform만 사용 (GPU, 재렌더링 없음) ──
+function applyTransform(){
+  stage.style.transform='translate('+panX+'px,'+panY+'px) scale('+scale+')';
+}
+
+function fit(){
+  if(!img)return;
+  const aw=ca.clientWidth-60, ah=ca.clientHeight-60;
+  scale=Math.min(1, aw/imgW, ah/imgH);
+  scale=Math.max(0.02,scale);
+  panX=(ca.clientWidth -imgW*scale)/2;
+  panY=(ca.clientHeight-imgH*scale)/2;
+  syncZUI();
+  applyTransform();
+}
+
+function syncZUI(){
+  const p=Math.round(scale*100);
+  document.getElementById('zslider').value=Math.min(500,Math.max(5,p));
+  document.getElementById('zval').textContent=p+'%';
+}
+
+function zoomAt(cx,cy,ns){
+  ns=Math.max(0.02,Math.min(20,ns));
+  panX=cx-(cx-panX)*(ns/scale);
+  panY=cy-(cy-panY)*(ns/scale);
+  scale=ns;
+  syncZUI();
+  applyTransform();
+}
+
+function sliderZoom(v){
+  zoomAt(ca.clientWidth/2, ca.clientHeight/2, v/100);
+}
+
+// 스크롤 줌
+ca.addEventListener('wheel',e=>{
+  if(!img)return;
+  e.preventDefault();
+  const r=ca.getBoundingClientRect();
+  zoomAt(e.clientX-r.left, e.clientY-r.top, scale*(e.deltaY<0?1.1:0.909));
+},{passive:false});
+
+// ── Drag 시작 ──
+// 빈 공간(canvas, overlay 배경) 클릭 → PAN
+ca.addEventListener('mousedown',e=>{
+  if(!img)return;
+  // crop 핸들이나 crop box 본체면 무시 (각자 처리)
+  if(e.target.dataset.d||e.target===cb||e.target.classList.contains('gl'))return;
+  e.preventDefault();
+  dragMode='pan';
+  dragStart={mx:e.clientX,my:e.clientY,px:panX,py:panY};
+  ca.classList.add('panning');
+});
+
+// crop box 이동
+cb.addEventListener('mousedown',e=>{
+  if(e.target.dataset.d||e.target.classList.contains('gl'))return;
+  if(e.target!==cb)return;
+  e.preventDefault(); e.stopPropagation();
+  dragMode='move';
+  dragStart={mx:e.clientX,my:e.clientY,cx:crop.x,cy:crop.y,cw:crop.w,ch:crop.h};
+});
+
+// crop 핸들
+document.querySelectorAll('.cc,.ce').forEach(el=>{
+  el.addEventListener('mousedown',e=>{
+    e.preventDefault(); e.stopPropagation();
+    dragMode=el.dataset.d;
+    dragStart={mx:e.clientX,my:e.clientY,cx:crop.x,cy:crop.y,cw:crop.w,ch:crop.h};
+  });
+});
+
+// ── Mouse Move ──
+document.addEventListener('mousemove',e=>{
+  if(!dragMode||!img)return;
+  if(dragMode==='pan'){
+    panX=dragStart.px+(e.clientX-dragStart.mx);
+    panY=dragStart.py+(e.clientY-dragStart.my);
+    applyTransform();
+    return;
+  }
+  // crop drag: 화면px → 이미지px (scale로 나눔)
+  const dx=(e.clientX-dragStart.mx)/scale;
+  const dy=(e.clientY-dragStart.my)/scale;
+  const {cx,cy,cw,ch}=dragStart;
+  if(dragMode==='move'){
+    crop.x=Math.max(0,Math.min(cx+dx,imgW-cw));
+    crop.y=Math.max(0,Math.min(cy+dy,imgH-ch));
+  } else {
+    let x=cx,y=cy,w=cw,h=ch;
+    if(dragMode.includes('e')) w=Math.max(1,cw+dx);
+    if(dragMode.includes('s')) h=Math.max(1,ch+dy);
+    if(dragMode.includes('w')){x=cx+dx;w=Math.max(1,cw-dx);}
+    if(dragMode.includes('n')){y=cy+dy;h=Math.max(1,ch-dy);}
+    if(cropLocked){
+      if(dragMode.includes('e')||dragMode.includes('w')) h=w/cropRatio;
+      else if(dragMode.includes('n')||dragMode.includes('s')) w=h*cropRatio;
+    }
+    x=Math.max(0,x); y=Math.max(0,y);
+    if(x+w>imgW)w=imgW-x; if(y+h>imgH)h=imgH-y;
+    w=Math.max(1,w); h=Math.max(1,h);
+    crop={x,y,w,h};
+  }
+  syncSidebar(); updateCropBox();
+});
+
+document.addEventListener('mouseup',()=>{dragMode=null;ca.classList.remove('panning');});
+
+// ── Touch Events ──
+function getTouches(e){ return e.touches||e.changedTouches; }
+
+// 단일 터치 → crop/pan drag
+function onTouchStart(el, mode, e){
+  if(e.touches.length===1){
+    const t=e.touches[0];
+    if(mode==='pan'){
+      if(!img)return;
+      dragMode='pan';
+      dragStart={mx:t.clientX,my:t.clientY,px:panX,py:panY};
+    } else if(mode==='move'){
+      e.stopPropagation();
+      dragMode='move';
+      dragStart={mx:t.clientX,my:t.clientY,cx:crop.x,cy:crop.y,cw:crop.w,ch:crop.h};
+    } else {
+      e.stopPropagation();
+      dragMode=mode;
+      dragStart={mx:t.clientX,my:t.clientY,cx:crop.x,cy:crop.y,cw:crop.w,ch:crop.h};
+    }
+  }
+}
+
+ca.addEventListener('touchstart', e=>{ if(e.target.dataset.d||e.target===cb||e.target.classList.contains('gl'))return; onTouchStart(ca,'pan',e); }, {passive:true});
+cb.addEventListener('touchstart', e=>{ if(e.target.dataset.d||e.target.classList.contains('gl'))return; if(e.target!==cb)return; onTouchStart(cb,'move',e); }, {passive:true});
+document.querySelectorAll('.cc,.ce').forEach(el=>{
+  el.addEventListener('touchstart', e=>onTouchStart(el, el.dataset.d, e), {passive:true});
+});
+
+// 핀치 줌
+let pinchDist0=0, pinchScale0=1, pinchCx=0, pinchCy=0;
+ca.addEventListener('touchstart', e=>{
+  if(e.touches.length===2){
+    dragMode=null;
+    const t0=e.touches[0], t1=e.touches[1];
+    pinchDist0=Math.hypot(t1.clientX-t0.clientX, t1.clientY-t0.clientY);
+    pinchScale0=scale;
+    const r=ca.getBoundingClientRect();
+    pinchCx=(t0.clientX+t1.clientX)/2 - r.left;
+    pinchCy=(t0.clientY+t1.clientY)/2 - r.top;
+  }
+}, {passive:true});
+
+document.addEventListener('touchmove', e=>{
+  if(e.touches.length===2){
+    e.preventDefault();
+    const t0=e.touches[0], t1=e.touches[1];
+    const dist=Math.hypot(t1.clientX-t0.clientX, t1.clientY-t0.clientY);
+    const ns=Math.max(0.02, Math.min(20, pinchScale0*(dist/pinchDist0)));
+    zoomAt(pinchCx, pinchCy, ns);
+    return;
+  }
+  if(!dragMode||!img) return;
+  const t=e.touches[0];
+  if(dragMode==='pan'){
+    panX=dragStart.px+(t.clientX-dragStart.mx);
+    panY=dragStart.py+(t.clientY-dragStart.my);
+    applyTransform(); return;
+  }
+  const dx=(t.clientX-dragStart.mx)/scale;
+  const dy=(t.clientY-dragStart.my)/scale;
+  const {cx,cy,cw,ch}=dragStart;
+  if(dragMode==='move'){
+    crop.x=Math.max(0,Math.min(cx+dx,imgW-cw));
+    crop.y=Math.max(0,Math.min(cy+dy,imgH-ch));
+  } else {
+    let x=cx,y=cy,w=cw,h=ch;
+    if(dragMode.includes('e')) w=Math.max(1,cw+dx);
+    if(dragMode.includes('s')) h=Math.max(1,ch+dy);
+    if(dragMode.includes('w')){x=cx+dx;w=Math.max(1,cw-dx);}
+    if(dragMode.includes('n')){y=cy+dy;h=Math.max(1,ch-dy);}
+    if(cropLocked){
+      if(dragMode.includes('e')||dragMode.includes('w')) h=w/cropRatio;
+      else if(dragMode.includes('n')||dragMode.includes('s')) w=h*cropRatio;
+    }
+    x=Math.max(0,x); y=Math.max(0,y);
+    if(x+w>imgW)w=imgW-x; if(y+h>imgH)h=imgH-y;
+    w=Math.max(1,w); h=Math.max(1,h);
+    crop={x,y,w,h};
+  }
+  syncSidebar(); updateCropBox();
+}, {passive:false});
+
+document.addEventListener('touchend', ()=>{ dragMode=null; });
+
+
+// ── Crop Box ──
+// canvas는 imgW x imgH 고정. crop 좌표 = 이미지px.
+// CSS transform(scale)이 stage 전체를 scale하므로
+// crop overlay 좌표도 이미지px 그대로 쓰면 됨.
+function updateCropBox(){
+  if(!img)return;
+  const x=Math.round(crop.x),y=Math.round(crop.y),w=Math.round(crop.w),h=Math.round(crop.h);
+  cb.style.left=x+'px'; cb.style.top=y+'px';
+  cb.style.width=w+'px'; cb.style.height=h+'px';
+  document.getElementById('dt').style.cssText='top:0;left:0;right:0;height:'+y+'px';
+  document.getElementById('db').style.cssText='top:'+(y+h)+'px;left:0;right:0;bottom:0';
+  document.getElementById('dl').style.cssText='top:'+y+'px;left:0;width:'+x+'px;height:'+h+'px';
+  document.getElementById('dr').style.cssText='top:'+y+'px;left:'+(x+w)+'px;right:0;height:'+h+'px';
+  document.getElementById('clabel').textContent=w+' x '+h;
+  document.getElementById('icw').textContent=w+' px';
+  document.getElementById('ich').textContent=h+' px';
+}
+
+function syncSidebar(){
+  document.getElementById('cx').value=Math.round(crop.x);
+  document.getElementById('cy').value=Math.round(crop.y);
+  document.getElementById('cw').value=Math.round(crop.w);
+  document.getElementById('ch').value=Math.round(crop.h);
+}
+
+function fromInput(changed){
+  let x=+document.getElementById('cx').value||0;
+  let y=+document.getElementById('cy').value||0;
+  let w=+document.getElementById('cw').value||1;
+  let h=+document.getElementById('ch').value||1;
+  if(cropLocked&&changed==='w')h=w/cropRatio;
+  if(cropLocked&&changed==='h')w=h*cropRatio;
+  x=Math.max(0,Math.min(x,imgW-1)); y=Math.max(0,Math.min(y,imgH-1));
+  w=Math.max(1,Math.min(w,imgW-x)); h=Math.max(1,Math.min(h,imgH-y));
+  crop={x,y,w,h}; syncSidebar(); updateCropBox();
+}
+
+function toggleCropLock(){
+  cropLocked=!cropLocked;
+  if(cropLocked)cropRatio=crop.w/crop.h;
+  document.getElementById('clt').className='toggle'+(cropLocked?' on':'');
+  document.getElementById('cll').textContent=cropLocked?'비율 고정 ON':'비율 고정 OFF';
+}
+function toggleOutLock(){
+  outLocked=!outLocked;
+  if(outLocked){outRatio=(+document.getElementById('ow').value||crop.w)/(+document.getElementById('oh').value||crop.h);}
+  document.getElementById('olt').className='toggle'+(outLocked?' on':'');
+  document.getElementById('oll').textContent=outLocked?'비율 고정 ON':'비율 고정 OFF';
+}
+function fromOutW(){if(!outLocked)return;const w=+document.getElementById('ow').value;if(w&&outRatio)document.getElementById('oh').value=Math.round(w/outRatio);}
+function fromOutH(){if(!outLocked)return;const h=+document.getElementById('oh').value;if(h&&outRatio)document.getElementById('ow').value=Math.round(h*outRatio);}
+
+function selectAll(){crop={x:0,y:0,w:imgW,h:imgH};syncSidebar();updateCropBox();}
+function resetCrop(){selectAll();}
+function preset(rw,rh){
+  if(!img)return;
+  const r=rw/rh; let w=imgW,h=imgH;
+  if(w/h>r)w=h*r; else h=w/r;
+  crop={x:(imgW-w)/2,y:(imgH-h)/2,w,h};
+  syncSidebar();updateCropBox();
+}
+
+// ── 저장 ──
+function doCrop(){
+  if(!img)return;
+  const sx=Math.round(crop.x),sy=Math.round(crop.y),sw=Math.round(crop.w),sh=Math.round(crop.h);
+  const ow=parseInt(document.getElementById('ow').value)||sw;
+  const oh=parseInt(document.getElementById('oh').value)||sh;
+  const out=document.createElement('canvas');
+  out.width=ow; out.height=oh;
+  out.getContext('2d').drawImage(img,sx,sy,sw,sh,0,0,ow,oh);
+  dl(out,fname+'_crop_'+sw+'x'+sh+'.png');
+  toast('크롭 저장 완료!');
+}
+function doResize(){
+  if(!img)return;
+  const ow=parseInt(document.getElementById('ow').value)||imgW;
+  const oh=parseInt(document.getElementById('oh').value)||imgH;
+  const out=document.createElement('canvas');
+  out.width=ow; out.height=oh;
+  out.getContext('2d').drawImage(img,0,0,ow,oh);
+  dl(out,fname+'_resize_'+ow+'x'+oh+'.png');
+  toast('리사이즈 저장 완료!');
+}
+function dl(c,name){
+  c.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();},'image/png');
+}
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+</script>
+</body>
+</html>
